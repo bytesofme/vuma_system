@@ -1,5 +1,3 @@
-[file name]: admin_parcels.php
-[file content begin]
 <?php
 session_start();
 require_once 'includes/config.php';
@@ -41,7 +39,7 @@ $error = $_GET['error'] ?? '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Parcels - Admin Panel</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         .admin-container {
@@ -378,4 +376,3 @@ $error = $_GET['error'] ?? '';
     </script>
 </body>
 </html>
-[file content end]
