@@ -8,17 +8,24 @@ COPY . .
 # Install PHP extensions
 RUN docker-php-ext-install pdo pdo_mysql
 
-# Enable Apache mod_rewrite and point to correct directory
-RUN a2enmod rewrite
+# Enable Apache modules
+RUN a2enmod rewrite headers
+
+# Configure Apache to serve CSS/JS files properly
+RUN echo '<Directory /var/www/html>' > /etc/apache2/conf-available/custom.conf
+RUN echo '    Options Indexes FollowSymLinks' >> /etc/apache2/conf-available/custom.conf
+RUN echo '    AllowOverride All' >> /etc/apache2/conf-available/custom.conf
+RUN echo '    Require all granted' >> /etc/apache2/conf-available/custom.conf
+RUN echo '    <FilesMatch "\.(css|js|png|jpg|jpeg|gif|ico|svg)$">' >> /etc/apache2/conf-available/custom.conf
+RUN echo '        Header set Cache-Control "max-age=86400"' >> /etc/apache2/conf-available/custom.conf
+RUN echo '    </FilesMatch>' >> /etc/apache2/conf-available/custom.conf
+RUN echo '</Directory>' >> /etc/apache2/conf-available/custom.conf
+
+RUN a2enconf custom
 
 # Set proper permissions
 RUN chown -R www-data:www-data /var/www/html
-
-# Create .htaccess for routing
-RUN echo 'RewriteEngine On' > .htaccess
-RUN echo 'RewriteCond %{REQUEST_FILENAME} !-f' >> .htaccess
-RUN echo 'RewriteCond %{REQUEST_FILENAME} !-d' >> .htaccess
-RUN echo 'RewriteRule ^(.*)$ index.php [QSA,L]' >> .htaccess
+RUN chmod -R 755 /var/www/html
 
 EXPOSE 8080
 
