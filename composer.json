@@ -1,0 +1,7 @@
+{
+    "name": "vuma/parcel-lockers",
+    "type": "project",
+    "require": {
+        "php": "^8.0"
+    }
+}
