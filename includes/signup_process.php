@@ -9,7 +9,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'];
     $confirm_password = $_POST['confirm_password'];
 
-    // Validation
     if (empty($full_name) || empty($email) || empty($phone) || empty($password)) {
         header('Location: ../signup.php?error=All fields are required');
         exit();
@@ -31,16 +30,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     try {
-        // Check if email already exists
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
-        $stmt->execute([$email]);
-        
-        if ($stmt->rowCount() > 0) {
+        // Check if email exists using the function from config.php
+        if (emailExists($pdo, $email)) {
             header('Location: ../signup.php?error=Email already registered');
             exit();
         }
 
-        // Hash password and create user
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         
         $stmt = $pdo->prepare("INSERT INTO users (full_name, email, phone, password, role) VALUES (?, ?, ?, ?, 'customer')");
@@ -50,7 +45,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
 
     } catch (PDOException $e) {
-        header('Location: ../signup.php?error=Database error: ' . $e->getMessage());
+        // If it's a unique constraint violation, email already exists
+        if (strpos($e->getMessage(), 'UNIQUE constraint failed') !== false) {
+            header('Location: ../signup.php?error=Email already registered');
+        } else {
+            header('Location: ../signup.php?error=Database error: ' . $e->getMessage());
+        }
         exit();
     }
 } else {
