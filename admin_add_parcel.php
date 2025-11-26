@@ -8,7 +8,7 @@ $user_name = $_SESSION['user_name'];
 
 // Get available lockers
 try {
-    $stmt = $pdo->prepare("SELECT * FROM lockers WHERE status = 'available' ORDER BY locker_number");
+    $stmt = $pdo->prepare("SELECT * FROM lockers WHERE status = 'available'");
     $stmt->execute();
     $available_lockers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -17,44 +17,42 @@ try {
 
 // Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $tracking_number = 'VUMA' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+    $tracking_number = trim($_POST['tracking_number']);
     $sender_name = trim($_POST['sender_name']);
     $recipient_email = trim($_POST['recipient_email']);
     $recipient_phone = trim($_POST['recipient_phone']);
-    $locker_id = $_POST['locker_id'] ?: null;
-    $status = 'in_transit';
+    $locker_id = $_POST['locker_id'];
+    $status = $_POST['status'];
 
-    // Validate required fields
-    if (empty($sender_name) || empty($recipient_email)) {
-        $error = "Sender name and recipient email are required";
+    if (empty($tracking_number) || empty($sender_name) || empty($recipient_email)) {
+        $error = "Please fill in all required fields";
     } else {
         try {
-            // Start transaction
-            $pdo->beginTransaction();
-
-            // Insert parcel
-            $stmt = $pdo->prepare("
-                INSERT INTO parcels (tracking_number, sender_name, recipient_email, recipient_phone, locker_id, status) 
-                VALUES (?, ?, ?, ?, ?, ?)
-            ");
-            $stmt->execute([$tracking_number, $sender_name, $recipient_email, $recipient_phone, $locker_id, $status]);
-
-            // Update locker status if assigned
-            if ($locker_id) {
-                $stmt = $pdo->prepare("UPDATE lockers SET status = 'occupied' WHERE id = ?");
-                $stmt->execute([$locker_id]);
-            }
-
-            // Commit transaction
-            $pdo->commit();
-
-            $success = "Parcel added successfully! Tracking Number: <strong>{$tracking_number}</strong>";
+            // Check if tracking number already exists
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM parcels WHERE tracking_number = ?");
+            $stmt->execute([$tracking_number]);
             
-            // Clear form
-            $_POST = [];
-
+            if ($stmt->fetchColumn() > 0) {
+                $error = "Tracking number already exists";
+            } else {
+                // Insert new parcel
+                $stmt = $pdo->prepare("INSERT INTO parcels (tracking_number, sender_name, recipient_email, recipient_phone, locker_id, status) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$tracking_number, $sender_name, $recipient_email, $recipient_phone, $locker_id, $status]);
+                
+                // Update locker status if locker is assigned
+                if (!empty($locker_id)) {
+                    $stmt = $pdo->prepare("UPDATE lockers SET status = 'occupied' WHERE id = ?");
+                    $stmt->execute([$locker_id]);
+                }
+                
+                $success = "Parcel added successfully!";
+                
+                // Clear form fields
+                $tracking_number = $sender_name = $recipient_email = $recipient_phone = '';
+                $locker_id = $status = '';
+            }
+            
         } catch (PDOException $e) {
-            $pdo->rollBack();
             $error = "Database error: " . $e->getMessage();
         }
     }
@@ -66,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add New Parcel - Admin Panel</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         .admin-container {
@@ -86,26 +84,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         .form-container {
             background: white;
-            padding: 2rem;
+            padding: 3rem;
             border-radius: 15px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
         
         .form-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
         }
         
         .form-group label {
             display: block;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.8rem;
             color: #333;
             font-weight: 600;
+            font-size: 1rem;
         }
         
         .form-control {
             width: 100%;
             padding: 1rem;
-            border: 2px solid #e0e0e0;
+            border: 2px solid #e8f4f1;
             border-radius: 10px;
             font-size: 1rem;
             transition: all 0.3s;
@@ -133,11 +132,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .submit-btn:hover {
             background: linear-gradient(135deg, #005a46, #008f70);
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,107,84,0.4);
         }
         
         .alert {
-            padding: 1rem;
+            padding: 1.5rem;
             border-radius: 10px;
             margin-bottom: 1.5rem;
         }
@@ -154,16 +152,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border: 1px solid #ff7675;
         }
         
-        .locker-info {
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 10px;
-            margin-top: 0.5rem;
-        }
-        
-        .optional {
-            color: #666;
-            font-size: 0.9rem;
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #006b54;
+            text-decoration: none;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -189,7 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="admin-container">
         <div class="page-header">
             <h1>📦 Add New Parcel</h1>
-            <p>Register a new parcel delivery in the system</p>
+            <p>Register a new parcel for delivery to locker system</p>
         </div>
         
         <?php if (isset($success)): ?>
@@ -207,78 +203,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="form-container">
             <form method="POST" action="">
                 <div class="form-group">
-                    <label for="sender_name">
-                        <i class="fas fa-user"></i> Sender Name *
-                    </label>
+                    <label for="tracking_number">Tracking Number *</label>
+                    <input type="text" id="tracking_number" name="tracking_number" class="form-control" 
+                           value="<?php echo isset($tracking_number) ? htmlspecialchars($tracking_number) : ''; ?>" 
+                           placeholder="e.g., VUMA002" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="sender_name">Sender Name *</label>
                     <input type="text" id="sender_name" name="sender_name" class="form-control" 
-                           value="<?php echo htmlspecialchars($_POST['sender_name'] ?? ''); ?>" 
-                           placeholder="Enter sender name (e.g., Amazon Kenya, Jumia)" required>
+                           value="<?php echo isset($sender_name) ? htmlspecialchars($sender_name) : ''; ?>" 
+                           placeholder="e.g., Amazon Kenya" required>
                 </div>
                 
                 <div class="form-group">
-                    <label for="recipient_email">
-                        <i class="fas fa-envelope"></i> Recipient Email *
-                    </label>
+                    <label for="recipient_email">Recipient Email *</label>
                     <input type="email" id="recipient_email" name="recipient_email" class="form-control" 
-                           value="<?php echo htmlspecialchars($_POST['recipient_email'] ?? ''); ?>" 
-                           placeholder="Enter recipient email address" required>
+                           value="<?php echo isset($recipient_email) ? htmlspecialchars($recipient_email) : ''; ?>" 
+                           placeholder="e.g., user@example.com" required>
                 </div>
                 
                 <div class="form-group">
-                    <label for="recipient_phone">
-                        <i class="fas fa-phone"></i> Recipient Phone Number
-                        <span class="optional">(optional)</span>
-                    </label>
-                    <input type="tel" id="recipient_phone" name="recipient_phone" class="form-control" 
-                           value="<?php echo htmlspecialchars($_POST['recipient_phone'] ?? ''); ?>" 
-                           placeholder="Enter recipient phone number">
+                    <label for="recipient_phone">Recipient Phone (Optional)</label>
+                    <input type="text" id="recipient_phone" name="recipient_phone" class="form-control" 
+                           value="<?php echo isset($recipient_phone) ? htmlspecialchars($recipient_phone) : ''; ?>" 
+                           placeholder="e.g., 0712345678">
                 </div>
                 
                 <div class="form-group">
-                    <label for="locker_id">
-                        <i class="fas fa-lock"></i> Assign to Locker
-                        <span class="optional">(optional - assign later)</span>
-                    </label>
+                    <label for="locker_id">Assign Locker (Optional)</label>
                     <select id="locker_id" name="locker_id" class="form-control">
-                        <option value="">-- Select a locker --</option>
+                        <option value="">-- Select Locker --</option>
                         <?php foreach ($available_lockers as $locker): ?>
-                            <option value="<?php echo $locker['id']; ?>" 
-                                    <?php echo ($_POST['locker_id'] ?? '') == $locker['id'] ? 'selected' : ''; ?>>
+                            <option value="<?php echo $locker['id']; ?>">
                                 Locker <?php echo $locker['locker_number']; ?> - <?php echo $locker['location']; ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    
-                    <?php if (!empty($available_lockers)): ?>
-                        <div class="locker-info">
-                            <strong>Available Lockers:</strong> <?php echo count($available_lockers); ?> lockers available
-                        </div>
-                    <?php else: ?>
-                        <div class="locker-info" style="background: #fff3cd; color: #856404;">
-                            <i class="fas fa-exclamation-triangle"></i> No available lockers. Parcel will be marked as "In Transit".
-                        </div>
-                    <?php endif; ?>
                 </div>
                 
                 <div class="form-group">
-                    <label>
-                        <i class="fas fa-info-circle"></i> Parcel Information
-                    </label>
-                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 10px;">
-                        <p><strong>Tracking Number:</strong> Will be generated automatically</p>
-                        <p><strong>Initial Status:</strong> In Transit</p>
-                        <p><strong>OTP Code:</strong> Will be generated when parcel is delivered</p>
-                    </div>
+                    <label for="status">Parcel Status</label>
+                    <select id="status" name="status" class="form-control">
+                        <option value="in_transit">In Transit</option>
+                        <option value="delivered">Delivered</option>
+                    </select>
                 </div>
                 
                 <button type="submit" class="submit-btn">
-                    <i class="fas fa-plus"></i> Add Parcel to System
+                    <i class="fas fa-plus"></i> Add Parcel
                 </button>
             </form>
-        </div>
-        
-        <div style="text-align: center; margin-top: 2rem; color: #666;">
-            <p>Need to manage existing parcels? <a href="admin_parcels.php" style="color: #006b54;">Go to Parcel Management</a></p>
         </div>
     </div>
 </body>
