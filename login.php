@@ -11,13 +11,25 @@ if (isset($_SESSION['user_id'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Vuma Parcel Lockers</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="/css/auth.css">
+    <link rel="stylesheet" href="css/auth.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* INLINE STYLES TO GUARANTEE NO CACHE */
+        .auth-background {
+            background: linear-gradient(135deg, #006b54, #d31621) !important;
+            background-size: 400% 400% !important;
+            animation: kenyanWave 15s ease infinite !important;
+        }
+        @keyframes kenyanWave {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+    </style>
 </head>
 <body>
     <div class="auth-container">
-        <div class="auth-background"></div>
+        <div class="auth-background" style="background: linear-gradient(135deg, #006b54, #d31621) !important;"></div>
         <div class="auth-form-container">
             <div class="auth-form">
                 <div class="auth-header">
@@ -76,5 +88,5 @@ if (isset($_SESSION['user_id'])) {
         </div>
     </div>
 </body>
-</html>
 
+</html>
