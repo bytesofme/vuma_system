@@ -1,5 +1,15 @@
 <?php
 session_start();
+
+// Redirect to dashboard if already logged in
+if (isset($_SESSION['user_id'])) {
+    if ($_SESSION['user_role'] === 'admin') {
+        header('Location: admin_dashboard.php');
+    } else {
+        header('Location: dashboard.php');
+    }
+    exit();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -7,39 +17,80 @@ session_start();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vuma Parcel Lockers - Smart Package Management</title>
-    <link rel="stylesheet" href="/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* COMPLETE HOMEPAGE STYLES */
+        /* MAGNIFICENT HOMEPAGE STYLES */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
         
-        body {
-            font-family: 'Arial', sans-serif;
-            line-height: 1.6;
-            color: #333;
-            overflow-x: hidden;
+        :root {
+            --primary: #006b54;
+            --primary-dark: #005a46;
+            --secondary: #d31621;
+            --secondary-dark: #b3121a;
+            --accent: #00a884;
+            --light: #f8f9fa;
+            --dark: #333;
+            --white: #ffffff;
+            --gradient: linear-gradient(135deg, var(--primary), var(--accent));
         }
         
-        /* Navigation */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            overflow-x: hidden;
+            background: var(--light);
+        }
+        
+        /* Animated Background */
+        .animated-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(0, 107, 84, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(211, 22, 33, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(0, 168, 132, 0.05) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            33% { transform: translateY(-20px) rotate(1deg); }
+            66% { transform: translateY(10px) rotate(-1deg); }
+        }
+        
+        /* Navigation - Glass Morphism */
         .navbar {
-            background: rgba(0, 107, 84, 0.95);
-            padding: 1rem 0;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            padding: 1.2rem 0;
             position: fixed;
             width: 100%;
             top: 0;
             z-index: 1000;
-            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .navbar.scrolled {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(30px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
         
         .nav-container {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 0 2rem;
         }
@@ -47,83 +98,152 @@ session_start();
         .logo {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: white;
+            gap: 0.8rem;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--white);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .navbar.scrolled .logo {
+            color: var(--primary);
         }
         
         .logo i {
-            font-size: 2rem;
+            font-size: 2.2rem;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
         .nav-links {
             display: flex;
-            gap: 1.5rem;
+            gap: 2rem;
             align-items: center;
         }
         
         .nav-links a {
-            color: white;
+            color: var(--white);
             text-decoration: none;
-            padding: 0.7rem 1.2rem;
-            border-radius: 6px;
-            transition: all 0.3s;
-            font-weight: 500;
+            padding: 0.8rem 1.5rem;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .navbar.scrolled .nav-links a {
+            color: var(--dark);
+        }
+        
+        .nav-links a::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--gradient);
+            transition: left 0.3s ease;
+            z-index: -1;
+            border-radius: 50px;
+        }
+        
+        .nav-links a:hover::before {
+            left: 0;
         }
         
         .nav-links a:hover {
-            background: rgba(255,255,255,0.15);
-        }
-        
-        .login-btn, .signup-btn {
-            background: #d31621;
-            color: white;
-            padding: 0.7rem 1.5rem;
-            border-radius: 6px;
-            font-weight: 600;
-        }
-        
-        .login-btn:hover, .signup-btn:hover {
-            background: #b3121a;
+            color: var(--white);
             transform: translateY(-2px);
         }
         
-        /* Hero Section */
+        .login-btn, .signup-btn {
+            background: var(--secondary);
+            color: var(--white);
+            padding: 0.8rem 2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .login-btn:hover, .signup-btn:hover {
+            background: var(--secondary-dark);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(211, 22, 33, 0.3);
+        }
+        
+        /* Hero Section - Spectacular */
         .hero-section {
-            background: linear-gradient(135deg, #006b54, #00a884);
-            color: white;
+            background: var(--gradient);
+            color: var(--white);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
-            margin-top: 0;
+            overflow: hidden;
+        }
+        
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="40" r="1.5" fill="rgba(255,255,255,0.1)"/><circle cx="40" cy="80" r="1" fill="rgba(255,255,255,0.1)"/></svg>') repeat,
+                linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+            animation: sparkle 3s ease-in-out infinite;
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
         }
         
         .hero-overlay {
             width: 100%;
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 2rem;
             text-align: center;
+            position: relative;
+            z-index: 2;
         }
         
         .hero-content h1 {
-            font-size: 3.5rem;
+            font-size: 4.5rem;
             margin-bottom: 1.5rem;
             font-weight: 800;
-            line-height: 1.2;
+            line-height: 1.1;
+            background: linear-gradient(135deg, var(--white), #f0f0f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { text-shadow: 0 0 20px rgba(255,255,255,0.5); }
+            to { text-shadow: 0 0 30px rgba(255,255,255,0.8); }
         }
         
         .hero-subtitle {
-            font-size: 1.3rem;
-            margin-bottom: 2.5rem;
+            font-size: 1.4rem;
+            margin-bottom: 3rem;
             opacity: 0.9;
             max-width: 600px;
             margin-left: auto;
             margin-right: auto;
             line-height: 1.6;
+            font-weight: 300;
         }
         
         .hero-buttons {
@@ -134,174 +254,250 @@ session_start();
         }
         
         .cta-button {
-            padding: 1.2rem 2.5rem;
-            border-radius: 10px;
+            padding: 1.3rem 3rem;
+            border-radius: 50px;
             text-decoration: none;
-            font-weight: bold;
-            transition: all 0.3s;
-            display: inline-block;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.8rem;
             font-size: 1.1rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.6s;
+        }
+        
+        .cta-button:hover::before {
+            left: 100%;
         }
         
         .cta-button.primary {
-            background: #d31621;
-            color: white;
-            box-shadow: 0 5px 15px rgba(211, 22, 33, 0.3);
+            background: var(--secondary);
+            color: var(--white);
+            box-shadow: 0 10px 30px rgba(211, 22, 33, 0.3);
         }
         
         .cta-button.secondary {
             background: transparent;
-            color: white;
-            border: 2px solid white;
+            color: var(--white);
+            border: 2px solid var(--white);
         }
         
         .cta-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
         }
         
         .cta-button.primary:hover {
-            background: #b3121a;
-            box-shadow: 0 8px 25px rgba(211, 22, 33, 0.4);
+            background: var(--secondary-dark);
+            box-shadow: 0 15px 40px rgba(211, 22, 33, 0.4);
         }
         
         .cta-button.secondary:hover {
-            background: white;
-            color: #006b54;
+            background: var(--white);
+            color: var(--primary);
         }
         
         /* Features Section */
         .features-section {
-            padding: 6rem 2rem;
-            background: #f8f9fa;
-        }
-        
-        .how-it-works {
-            padding: 6rem 2rem;
-            background: white;
+            padding: 8rem 2rem;
+            background: var(--white);
+            position: relative;
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
         
-        .container h2 {
+        .section-header {
             text-align: center;
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-            color: #006b54;
-            font-weight: 700;
+            margin-bottom: 4rem;
         }
         
-        .container > p {
-            text-align: center;
-            font-size: 1.2rem;
-            color: #666;
-            margin-bottom: 3rem;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2.5rem;
-            margin-top: 4rem;
-        }
-        
-        .feature-card {
-            background: white;
-            padding: 3rem 2rem;
-            border-radius: 15px;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            transition: all 0.3s;
-            border-top: 4px solid #006b54;
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-        }
-        
-        .feature-card i {
+        .section-header h2 {
             font-size: 3.5rem;
-            color: #006b54;
-            margin-bottom: 1.5rem;
-        }
-        
-        .feature-card h3 {
-            font-size: 1.5rem;
             margin-bottom: 1rem;
-            color: #333;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 800;
         }
         
-        .feature-card p {
+        .section-header p {
+            font-size: 1.3rem;
             color: #666;
+            max-width: 600px;
+            margin: 0 auto;
             line-height: 1.6;
         }
         
-        /* Steps Section */
-        .steps-grid {
+        .features-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 3rem;
             margin-top: 4rem;
         }
         
+        .feature-card {
+            background: var(--white);
+            padding: 3rem 2rem;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-15px);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.15);
+        }
+        
+        .feature-card i {
+            font-size: 4rem;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1.5rem;
+            display: block;
+        }
+        
+        .feature-card h3 {
+            font-size: 1.6rem;
+            margin-bottom: 1rem;
+            color: var(--dark);
+            font-weight: 700;
+        }
+        
+        .feature-card p {
+            color: #666;
+            line-height: 1.7;
+            font-size: 1.1rem;
+        }
+        
+        /* How It Works Section */
+        .how-it-works {
+            padding: 8rem 2rem;
+            background: var(--light);
+            position: relative;
+        }
+        
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 3rem;
+            margin-top: 4rem;
+        }
+        
         .step {
             text-align: center;
-            padding: 2.5rem;
-            background: #f8f9fa;
-            border-radius: 15px;
-            transition: all 0.3s;
+            padding: 3rem 2rem;
+            background: var(--white);
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            position: relative;
         }
         
         .step:hover {
-            background: white;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            transform: translateY(-5px);
+            transform: translateY(-10px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
         }
         
         .step-number {
-            background: linear-gradient(135deg, #006b54, #00a884);
-            color: white;
-            width: 70px;
-            height: 70px;
+            background: var(--gradient);
+            color: var(--white);
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.8rem;
+            font-size: 2rem;
             font-weight: bold;
-            margin: 0 auto 1.5rem;
-            box-shadow: 0 5px 15px rgba(0,107,84,0.3);
+            margin: 0 auto 2rem;
+            box-shadow: 0 10px 25px rgba(0,107,84,0.3);
+            position: relative;
+        }
+        
+        .step-number::after {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            border: 2px solid var(--primary);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
         }
         
         .step h3 {
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             margin-bottom: 1rem;
-            color: #006b54;
+            color: var(--primary);
+            font-weight: 700;
         }
         
         .step p {
             color: #666;
-            line-height: 1.6;
+            line-height: 1.7;
+            font-size: 1.1rem;
         }
         
         /* Footer */
         .footer {
-            background: #333;
-            color: white;
+            background: var(--dark);
+            color: var(--white);
             text-align: center;
-            padding: 3rem 2rem;
+            padding: 4rem 2rem;
+            position: relative;
+        }
+        
+        .footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--gradient);
         }
         
         .footer p {
             margin: 0;
-            font-size: 1rem;
+            font-size: 1.1rem;
             opacity: 0.8;
         }
         
@@ -318,7 +514,7 @@ session_start();
             }
             
             .hero-content h1 {
-                font-size: 2.5rem;
+                font-size: 2.8rem;
             }
             
             .hero-subtitle {
@@ -334,107 +530,164 @@ session_start();
                 width: 100%;
                 max-width: 300px;
                 text-align: center;
+                justify-content: center;
             }
             
-            .container h2 {
-                font-size: 2rem;
+            .section-header h2 {
+                font-size: 2.5rem;
             }
             
             .features-grid, .steps-grid {
                 grid-template-columns: 1fr;
             }
         }
+        
+        /* Floating Animation */
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        
+        @keyframes floating {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
     </style>
 </head>
 <body>
-    <!-- Hero Section with Background -->
-    <div class="hero-section">
-        <div class="hero-overlay">
-            <nav class="navbar">
-                <div class="nav-container">
-                    <div class="logo">
-                        <i class="fas fa-box-open"></i>
-                        <span>VUMA LOCKERS</span>
-                    </div>
-                    <div class="nav-links">
-                        <a href="#features">Features</a>
-                        <a href="#about">How It Works</a>
-                        <a href="login.php" class="login-btn">Login</a>
-                        <a href="signup.php" class="signup-btn">Sign Up</a>
-                    </div>
-                </div>
-            </nav>
+    <!-- Animated Background -->
+    <div class="animated-bg"></div>
+    
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#" class="logo">
+                <i class="fas fa-box-open floating"></i>
+                <span>VUMA LOCKERS</span>
+            </a>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="login.php" class="login-btn">Login</a>
+                <a href="signup.php" class="signup-btn">Sign Up</a>
+            </div>
+        </div>
+    </nav>
 
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-overlay">
             <div class="hero-content">
                 <h1>Smart Parcel Management</h1>
-                <p class="hero-subtitle">Secure, convenient, and automated package delivery with 24/7 access to smart lockers in Eldoret</p>
+                <p class="hero-subtitle">Revolutionizing package delivery in Eldoret with secure, automated smart lockers. Experience 24/7 convenience with military-grade security and instant notifications.</p>
                 <div class="hero-buttons">
-                    <a href="signup.php" class="cta-button primary">Get Started</a>
-                    <a href="#features" class="cta-button secondary">Learn More</a>
+                    <a href="signup.php" class="cta-button primary">
+                        <i class="fas fa-rocket"></i>
+                        Get Started Free
+                    </a>
+                    <a href="#features" class="cta-button secondary">
+                        <i class="fas fa-play-circle"></i>
+                        Watch Demo
+                    </a>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
     <!-- Features Section -->
     <section id="features" class="features-section">
         <div class="container">
-            <h2>Why Choose Vuma Lockers?</h2>
-            <p>Experience the future of parcel delivery with our secure and convenient locker system</p>
+            <div class="section-header">
+                <h2>Why Choose Vuma Lockers?</h2>
+                <p>Experience the future of parcel delivery with cutting-edge technology and unparalleled convenience</p>
+            </div>
             <div class="features-grid">
                 <div class="feature-card">
                     <i class="fas fa-shield-alt"></i>
-                    <h3>Secure Access</h3>
-                    <p>One-time passwords ensure only you can access your packages with maximum security</p>
+                    <h3>Military-Grade Security</h3>
+                    <p>One-time passwords with encryption ensure only authorized access. Advanced surveillance and tamper-proof lockers protect your packages 24/7.</p>
                 </div>
                 <div class="feature-card">
-                    <i class="fas fa-bell"></i>
-                    <h3>Instant Notifications</h3>
-                    <p>Get real-time updates and alerts when your package arrives at the locker</p>
+                    <i class="fas fa-bolt"></i>
+                    <h3>Instant Real-Time Alerts</h3>
+                    <p>Receive immediate notifications via SMS and email. Track your package from delivery to pickup with live status updates and estimated times.</p>
                 </div>
                 <div class="feature-card">
                     <i class="fas fa-clock"></i>
-                    <h3>24/7 Availability</h3>
-                    <p>Pick up your parcels anytime day or night that suits your schedule</p>
+                    <h3>24/7 Unlimited Access</h3>
+                    <p>No more missed deliveries. Collect your parcels anytime - day or night, weekends or holidays. Your schedule, your convenience.</p>
                 </div>
                 <div class="feature-card">
-                    <i class="fas fa-map-marker-alt"></i>
-                    <h3>Convenient Locations</h3>
-                    <p>Multiple locker stations strategically located across Eldoret for easy access</p>
+                    <i class="fas fa-map-marked-alt"></i>
+                    <h3>Strategic Locations</h3>
+                    <p>Multiple conveniently located stations across Eldoret. Easy access from residential areas, shopping centers, and business districts.</p>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- How It Works Section -->
-    <section id="about" class="how-it-works">
+    <section id="how-it-works" class="how-it-works">
         <div class="container">
-            <h2>How It Works</h2>
-            <p>Simple three-step process to get your packages securely</p>
+            <div class="section-header">
+                <h2>How It Works</h2>
+                <p>Simple, secure, and efficient - your package delivery revolutionized in three easy steps</p>
+            </div>
             <div class="steps-grid">
                 <div class="step">
                     <div class="step-number">1</div>
-                    <h3>Package Arrival</h3>
-                    <p>Your package is securely stored in one of our temperature-controlled smart lockers upon delivery</p>
+                    <h3>Smart Delivery</h3>
+                    <p>Your package is securely stored in our climate-controlled smart lockers. Advanced sensors monitor temperature and humidity for sensitive items.</p>
                 </div>
                 <div class="step">
                     <div class="step-number">2</div>
-                    <h3>Receive OTP</h3>
-                    <p>Get a unique 4-digit security code sent directly to your registered email and phone number</p>
+                    <h3>Secure OTP Generation</h3>
+                    <p>Receive a unique 6-digit security code delivered instantly to your registered contact methods. Codes expire after use for maximum security.</p>
                 </div>
                 <div class="step">
                     <div class="step-number">3</div>
-                    <h3>Collect Package</h3>
-                    <p>Visit the locker station, enter your code, and retrieve your package at your convenience</p>
+                    <h3>Convenient Collection</h3>
+                    <p>Visit any locker station, enter your secure code, and retrieve your package. Touch-free operation with automated door systems.</p>
                 </div>
             </div>
         </div>
     </section>
 
+    <!-- Footer -->
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2025 Vuma Parcel Lockers. All rights reserved.</p>
+            <p>&copy; 2025 Vuma Parcel Lockers. Transforming Delivery in Eldoret. All rights reserved.</p>
         </div>
     </footer>
+
+    <script>
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 100) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Add loading animation
+        window.addEventListener('load', function() {
+            document.body.style.opacity = '0';
+            document.body.style.transition = 'opacity 0.5s ease';
+            setTimeout(() => {
+                document.body.style.opacity = '1';
+            }, 100);
+        });
+    </script>
 </body>
 </html>
